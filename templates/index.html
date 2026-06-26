@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ECOruta – Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+:root{
+  --g-deep:#0d3b2e;--g-mid:#1a6644;--g-bright:#2fb87e;--g-neon:#6effc5;
+  --cream:#f4f0e6;--earth:#c8a96e;--charcoal:#0e1512;--card:rgba(255,255,255,0.05);
+  --border:rgba(110,255,197,0.15);--danger:#e05c5c;--warn:#f0a500;--info:#5b8cf4;
+  --radius:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--charcoal);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+input,select,textarea,button{font-family:inherit}
+.bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 50% at 0% 0%,rgba(47,184,126,.1) 0%,transparent 55%),
+             radial-gradient(ellipse 50% 60% at 100% 100%,rgba(13,59,46,.5) 0%,transparent 55%),
+             var(--charcoal)}
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(110,255,197,.035) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(110,255,197,.035) 1px,transparent 1px);
+  background-size:52px 52px}
+
+/* LOGIN */
+#login-screen{position:relative;z-index:10;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+.login-box{background:rgba(14,21,18,.85);border:1px solid var(--border);border-radius:22px;
+  padding:3rem 2.5rem;width:100%;max-width:420px;backdrop-filter:blur(16px);animation:fadeUp .5s ease both}
+.login-logo{display:flex;align-items:center;gap:.75rem;margin-bottom:2.2rem}
+.login-logo .ico{width:46px;height:46px;background:linear-gradient(135deg,var(--g-mid),var(--g-bright));
+  border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem}
+.login-logo .txt{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;letter-spacing:-.03em}
+.login-logo .txt span{color:var(--g-neon)}
+.login-box h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.4rem;margin-bottom:.4rem}
+.login-box .sub{font-size:.85rem;color:rgba(244,240,230,.5);margin-bottom:2rem}
+.field{margin-bottom:1.2rem}
+.field label{display:block;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,240,230,.5);margin-bottom:.5rem}
+.field input,.field select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  color:var(--cream);border-radius:10px;padding:.75rem 1rem;font-size:.9rem;transition:border-color .2s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--g-bright)}
+.field select option{background:#0e1512}
+.btn-login{width:100%;padding:.85rem;background:var(--g-bright);color:#0e1512;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;
+  border:none;border-radius:10px;cursor:pointer;transition:background .2s,transform .15s;margin-top:.5rem}
+.btn-login:hover{background:var(--g-neon);transform:translateY(-2px)}
+.login-err{font-size:.8rem;color:var(--danger);margin-top:.8rem;text-align:center;min-height:1.2em}
+
+/* CAPTCHA */
+.captcha-box{display:flex;align-items:center;gap:.7rem;margin-bottom:1.2rem;
+  background:rgba(110,255,197,.05);border:1px solid rgba(110,255,197,.2);
+  border-radius:10px;padding:.7rem 1rem}
+.captcha-eq{font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;
+  color:var(--g-neon);white-space:nowrap;flex-shrink:0}
+.captcha-eq span{color:rgba(244,240,230,.5);font-size:.8rem;margin-right:.3rem}
+.captcha-input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  color:var(--cream);border-radius:8px;padding:.55rem .8rem;font-size:.92rem;font-family:'Syne',sans-serif;
+  font-weight:700;text-align:center;transition:border-color .2s;min-width:0}
+.captcha-input:focus{outline:none;border-color:var(--g-bright)}
+.captcha-refresh{background:none;border:1px solid rgba(110,255,197,.2);color:rgba(244,240,230,.5);
+  border-radius:8px;padding:.45rem .6rem;cursor:pointer;font-size:.85rem;transition:all .2s;flex-shrink:0}
+.captcha-refresh:hover{border-color:var(--g-bright);color:var(--g-neon)}
+.captcha-loading{opacity:.5;font-size:.78rem;color:rgba(244,240,230,.4)}
+.login-blocked{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.3);
+  border-radius:10px;padding:.8rem 1rem;font-size:.8rem;color:var(--danger);text-align:center;margin-bottom:1rem}
+.role-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:1.5rem}
+.role-opt{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.8rem .5rem;
+  text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.03)}
+.role-opt:hover{border-color:var(--g-bright)}
+.role-opt.selected{border-color:var(--g-neon);background:rgba(110,255,197,.08)}
+.role-opt .r-ico{font-size:1.4rem;margin-bottom:.3rem}
+.role-opt .r-name{font-family:'Syne',sans-serif;font-weight:700;font-size:.75rem}
+.role-opt .r-key{font-size:.62rem;color:rgba(244,240,230,.4);text-transform:uppercase;letter-spacing:.08em}
+
+/* APP */
+#app{display:none;position:relative;z-index:10;min-height:100vh}
+.sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;
+  background:rgba(10,18,14,.92);border-right:1px solid var(--border);
+  backdrop-filter:blur(16px);display:flex;flex-direction:column;padding:1.5rem 0;z-index:100}
+.sb-logo{display:flex;align-items:center;gap:.7rem;padding:0 1.5rem 1.5rem;border-bottom:1px solid var(--border)}
+.sb-logo .ico{width:38px;height:38px;background:linear-gradient(135deg,var(--g-mid),var(--g-bright));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.sb-logo .txt{font-family:'Syne',sans-serif;font-weight:800;font-size:1.25rem;letter-spacing:-.03em}
+.sb-logo .txt span{color:var(--g-neon)}
+.sb-user{padding:1rem 1.5rem;border-bottom:1px solid var(--border)}
+.sb-user .u-name{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem}
+.sb-user .u-role{display:inline-flex;align-items:center;gap:.35rem;font-size:.7rem;
+  padding:.2rem .6rem;border-radius:20px;margin-top:.3rem;text-transform:uppercase;letter-spacing:.1em}
+.role-admin    .u-role{background:rgba(240,165,0,.15);color:#f0a500;border:1px solid rgba(240,165,0,.3)}
+.role-user     .u-role{background:rgba(47,184,126,.15);color:var(--g-neon);border:1px solid rgba(110,255,197,.3)}
+.role-operator .u-role{background:rgba(91,140,244,.15);color:#93c5fd;border:1px solid rgba(91,140,244,.3)}
+.role-conductor .u-role{background:rgba(200,169,110,.15);color:#c8a96e;border:1px solid rgba(200,169,110,.3)}
+.sb-nav{flex:1;overflow-y:auto;padding:1rem 0}
+.sb-section{padding:.4rem 1.5rem .2rem;font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;color:rgba(244,240,230,.3)}
+.sb-item{display:flex;align-items:center;gap:.8rem;padding:.7rem 1.5rem;cursor:pointer;
+  border-left:3px solid transparent;transition:all .2s;font-size:.875rem;color:rgba(244,240,230,.65);margin:.05rem 0}
+.sb-item:hover{background:rgba(255,255,255,.04);color:var(--cream)}
+.sb-item.active{border-left-color:var(--g-bright);background:rgba(47,184,126,.08);color:var(--g-neon)}
+.sb-item .s-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;background:rgba(255,255,255,.05);flex-shrink:0}
+.sb-item.active .s-ico{background:rgba(47,184,126,.15)}
+.sb-item .s-label{font-weight:500}
+.sb-item .s-badge{margin-left:auto;font-size:.6rem;padding:.15rem .5rem;background:rgba(47,184,126,.2);color:var(--g-neon);border-radius:20px}
+.sb-footer{padding:1rem 1.5rem;border-top:1px solid var(--border)}
+.btn-logout{width:100%;padding:.6rem;background:rgba(224,92,92,.1);color:var(--danger);
+  border:1px solid rgba(224,92,92,.25);border-radius:8px;cursor:pointer;font-size:.8rem;
+  font-family:'Syne',sans-serif;font-weight:600;transition:all .2s}
+.btn-logout:hover{background:rgba(224,92,92,.2)}
+
+/* MAIN */
+.main{margin-left:260px;min-height:100vh;padding:2rem 2.5rem}
+.main-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem}
+.main-header h1{font-family:'Syne',sans-serif;font-weight:800;font-size:1.8rem;letter-spacing:-.03em}
+.main-header .breadcrumb{font-size:.8rem;color:rgba(244,240,230,.4)}
+.main-header .breadcrumb span{color:var(--g-bright)}
+.btn-add{display:flex;align-items:center;gap:.5rem;padding:.65rem 1.3rem;
+  background:var(--g-bright);color:#0e1512;border:none;border-radius:10px;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .2s,transform .15s}
+.btn-add:hover{background:var(--g-neon);transform:translateY(-2px)}
+.view-toggle{display:flex;gap:.4rem;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.3rem}
+.vt-btn{padding:.4rem .9rem;border-radius:7px;border:none;background:none;color:rgba(244,240,230,.5);
+  cursor:pointer;font-size:.8rem;font-family:'Syne',sans-serif;font-weight:600;transition:all .2s;display:flex;align-items:center;gap:.4rem}
+.vt-btn.active{background:rgba(47,184,126,.15);color:var(--g-neon)}
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.table-toolbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.2rem;border-bottom:1px solid var(--border)}
+.tbl-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem}
+.tbl-count{font-size:.75rem;color:rgba(244,240,230,.4)}
+.search-box{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.4rem .8rem}
+.search-box input{background:none;border:none;color:var(--cream);font-size:.82rem;width:180px}
+.search-box input:focus{outline:none}
+table{width:100%;border-collapse:collapse}
+thead tr{background:rgba(255,255,255,.04)}
+th{padding:.7rem 1rem;text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(244,240,230,.45);font-weight:600;white-space:nowrap}
+td{padding:.75rem 1rem;font-size:.85rem;border-top:1px solid rgba(255,255,255,.05);color:rgba(244,240,230,.8)}
+tr:hover td{background:rgba(255,255,255,.02)}
+.td-actions{display:flex;gap:.4rem}
+.btn-edit,.btn-del,.btn-map{padding:.3rem .7rem;border-radius:6px;border:none;cursor:pointer;font-size:.75rem;font-weight:600}
+.btn-edit{background:rgba(91,140,244,.15);color:#93c5fd;border:1px solid rgba(91,140,244,.25)}
+.btn-edit:hover{background:rgba(91,140,244,.3)}
+.btn-del{background:rgba(224,92,92,.12);color:var(--danger);border:1px solid rgba(224,92,92,.25)}
+.btn-del:hover{background:rgba(224,92,92,.25)}
+.btn-map{background:rgba(47,184,126,.12);color:var(--g-neon);border:1px solid rgba(110,255,197,.25)}
+.btn-map:hover{background:rgba(47,184,126,.25)}
+.badge{display:inline-block;padding:.18rem .55rem;border-radius:20px;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.badge-green {background:rgba(47,184,126,.15);color:var(--g-neon);border:1px solid rgba(110,255,197,.2)}
+.badge-yellow{background:rgba(240,165,0,.15);color:#f0a500;border:1px solid rgba(240,165,0,.2)}
+.badge-red   {background:rgba(224,92,92,.15);color:var(--danger);border:1px solid rgba(224,92,92,.2)}
+.badge-blue  {background:rgba(91,140,244,.15);color:#93c5fd;border:1px solid rgba(91,140,244,.2)}
+.empty-row td{text-align:center;padding:3rem;color:rgba(244,240,230,.3);font-size:.85rem}
+.loading-row td{text-align:center;padding:2rem;color:rgba(244,240,230,.3);font-size:.82rem}
+
+/* MAPA */
+.map-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:1.5rem}
+.map-toolbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.2rem;border-bottom:1px solid var(--border)}
+.map-toolbar h3{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:.5rem}
+.map-legend{display:flex;gap:1rem;font-size:.75rem;color:rgba(244,240,230,.55)}
+.map-legend span{display:flex;align-items:center;gap:.35rem}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot-origin{background:#6effc5}.dot-dest{background:#f0a500}
+.dot-line{width:20px;height:3px;border-radius:2px;background:#2fb87e;display:inline-block}
+#ruta-map{height:420px;width:100%;background:#0a140f}
+.leaflet-tile-pane{filter:brightness(.75) saturate(.8) hue-rotate(140deg)}
+.leaflet-container{background:#0a140f}
+.leaflet-popup-content-wrapper{background:#0e1a14;border:1px solid var(--border);color:var(--cream);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.leaflet-popup-tip{background:#0e1a14}
+.leaflet-popup-content{font-family:'DM Sans',sans-serif;font-size:.82rem;line-height:1.5}
+.leaflet-popup-content b{color:var(--g-neon);font-family:'Syne',sans-serif}
+.leaflet-bar a{background:#0e1a14 !important;color:var(--cream) !important;border-color:var(--border) !important}
+.leaflet-bar a:hover{background:#1a2e22 !important}
+.map-no-coords{padding:3rem;text-align:center;color:rgba(244,240,230,.35);font-size:.85rem}
+
+/* WELCOME */
+.welcome-panel{text-align:center;padding:5rem 2rem}
+.welcome-panel .w-ico{font-size:4rem;margin-bottom:1rem}
+.welcome-panel h2{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;margin-bottom:.6rem}
+.welcome-panel p{color:rgba(244,240,230,.5);font-size:.9rem}
+
+/* RBAC CARDS (conductor) */
+.rbac-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.8rem 1.4rem;transition:border-color .2s,background .2s}
+.rbac-card:hover{border-color:var(--g-bright);background:rgba(47,184,126,.06)}
+.rc-ico{font-size:2.2rem;margin-bottom:.8rem}
+.rc-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:.4rem}
+.rc-desc{font-size:.8rem;color:rgba(244,240,230,.5);line-height:1.5}
+
+/* RBAC banner (usuario solo lectura) */
+.rbac-info-banner{background:rgba(91,140,244,.1);border:1px solid rgba(91,140,244,.25);
+  border-radius:10px;padding:.8rem 1.2rem;font-size:.85rem;color:#93c5fd;margin-bottom:1.5rem}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;
+  display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:#0e1a14;border:1px solid var(--border);border-radius:20px;
+  width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:fadeUp .3s ease both}
+.modal.modal-wide{max-width:780px}
+#picker-map{height:300px;width:100%;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:.8rem}
+.picker-steps{display:flex;gap:.6rem;margin-bottom:.8rem}
+.step-pill{flex:1;padding:.5rem .6rem;border-radius:8px;font-size:.75rem;text-align:center;
+  border:1px solid var(--border);color:rgba(244,240,230,.4);background:rgba(255,255,255,.03);transition:all .2s}
+.step-pill.active{border-color:var(--g-bright);color:var(--g-neon);background:rgba(47,184,126,.1)}
+.step-pill.done{border-color:rgba(110,255,197,.3);color:rgba(110,255,197,.6);background:rgba(47,184,126,.05)}
+.step-pill .sp-ico{font-size:1rem;display:block;margin-bottom:.2rem}
+.step-pill .sp-lbl{font-family:'Syne',sans-serif;font-weight:700;font-size:.7rem}
+.step-pill .sp-val{font-size:.65rem;margin-top:.15rem;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.picker-hint{font-size:.75rem;color:rgba(244,240,230,.4);text-align:center;padding:.4rem;
+  background:rgba(255,255,255,.03);border-radius:6px;margin-bottom:.8rem}
+.btn-reset-picker{background:none;border:1px solid var(--border);color:rgba(244,240,230,.4);
+  border-radius:6px;padding:.3rem .7rem;font-size:.72rem;cursor:pointer;transition:all .2s}
+.btn-reset-picker:hover{border-color:var(--danger);color:var(--danger)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;
+  padding:1.5rem 1.8rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:#0e1a14;z-index:10}
+.modal-header h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem}
+.modal-close{background:none;border:none;color:rgba(244,240,230,.5);cursor:pointer;font-size:1.2rem;
+  width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.modal-close:hover{background:rgba(255,255,255,.08);color:var(--cream)}
+.modal-body{padding:1.5rem 1.8rem}
+.m-field{margin-bottom:1.2rem}
+.m-field label{display:block;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,240,230,.5);margin-bottom:.45rem}
+.m-field input,.m-field select,.m-field textarea{
+  width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  color:var(--cream);border-radius:10px;padding:.7rem 1rem;font-size:.88rem;transition:border-color .2s}
+.m-field input:focus,.m-field select:focus,.m-field textarea:focus{outline:none;border-color:var(--g-bright)}
+.m-field select option{background:#0e1512}
+.field-hint{font-size:.72rem;color:rgba(244,240,230,.4);margin-top:.3rem;line-height:1.4}
+.field-err {font-size:.72rem;color:var(--danger);margin-top:.3rem;min-height:1rem;font-weight:500}
+.m-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.modal-footer{display:flex;justify-content:flex-end;gap:.8rem;padding:1rem 1.8rem;border-top:1px solid var(--border)}
+.btn-cancel{padding:.65rem 1.4rem;background:rgba(255,255,255,.06);color:var(--cream);
+  border:1px solid rgba(255,255,255,.12);border-radius:10px;cursor:pointer;font-size:.85rem;
+  font-family:'Syne',sans-serif;font-weight:600;transition:all .2s}
+.btn-cancel:hover{background:rgba(255,255,255,.1)}
+.btn-save{padding:.65rem 1.4rem;background:var(--g-bright);color:#0e1512;
+  border:none;border-radius:10px;cursor:pointer;font-size:.85rem;
+  font-family:'Syne',sans-serif;font-weight:700;transition:all .2s}
+.btn-save:hover{background:var(--g-neon)}
+.btn-del-confirm{padding:.65rem 1.4rem;background:var(--danger);color:#fff;
+  border:none;border-radius:10px;cursor:pointer;font-size:.85rem;
+  font-family:'Syne',sans-serif;font-weight:700;transition:opacity .2s}
+.btn-del-confirm:hover{opacity:.85}
+.confirm-body{padding:1.8rem;text-align:center}
+.confirm-body .c-ico{font-size:2.5rem;margin-bottom:1rem}
+.confirm-body h3{font-family:'Syne',sans-serif;font-weight:700;margin-bottom:.5rem}
+.confirm-body p{font-size:.85rem;color:rgba(244,240,230,.55)}
+.toast{position:fixed;bottom:2rem;right:2rem;z-index:9999;
+  display:flex;align-items:center;gap:.7rem;background:#0e1a14;border:1px solid var(--border);
+  border-radius:12px;padding:.9rem 1.2rem;font-size:.85rem;box-shadow:0 8px 30px rgba(0,0,0,.4);
+  transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.17,.67,.35,1.2);pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:rgba(47,184,126,.4)}
+.toast.error  {border-color:rgba(224,92,92,.4)}
+.custom-marker-origin,.custom-marker-dest{width:14px;height:14px;border-radius:50%;border:3px solid #0e1a14;box-shadow:0 0 8px rgba(0,0,0,.5)}
+.custom-marker-origin{background:#6effc5}.custom-marker-dest{background:#f0a500}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div><div class="bg-grid"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+<div class="login-box">
+  <div class="login-logo">
+    <div class="ico">♻️</div><div class="txt">ECO<span>ruta</span></div>
+  </div>
+  <h2>Iniciar sesión</h2>
+  <p class="sub">Selecciona tu rol y accede al sistema</p>
+  <div class="role-selector">
+    <div class="role-opt" onclick="selectRole('admin',this)">
+      <div class="r-ico">🛡️</div><div class="r-name">Admin</div><div class="r-key">admin</div>
+    </div>
+    <div class="role-opt" onclick="selectRole('conductor',this)">
+      <div class="r-ico">🚛</div><div class="r-name">Conductor</div><div class="r-key">conductor</div>
+    </div>
+    <div class="role-opt" onclick="selectRole('usuario',this)">
+      <div class="r-ico">👤</div><div class="r-name">Usuario</div><div class="r-key">usuario</div>
+    </div>
+  </div>
+  <div class="field"><label>Usuario</label><input type="text" id="username" placeholder="Ej. admin" autocomplete="username"/></div>
+  <div class="field"><label>Contraseña</label><input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/></div>
+
+  <!-- CAPTCHA -->
+  <div id="captcha-blocked" class="login-blocked" style="display:none"></div>
+  <div class="field">
+    <label>Verificación de seguridad</label>
+    <div class="captcha-box">
+      <div class="captcha-eq" id="captcha-eq">
+        <span>¿Cuánto es</span>
+        <span id="captcha-pregunta">…</span> =
+      </div>
+      <input type="number" id="captcha-answer" class="captcha-input" placeholder="?" autocomplete="off"/>
+      <button type="button" class="captcha-refresh" onclick="loadCaptcha()" title="Nueva pregunta">↺</button>
+    </div>
+  </div>
+
+  <button class="btn-login" id="btn-login" onclick="doLogin()">Entrar al sistema</button>
+  <div class="login-err" id="login-err"></div>
+</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main" id="main-content"></main>
+</div>
+
+<!-- CRUD MODAL -->
+<div class="modal-overlay" id="crud-modal">
+  <div class="modal" id="crud-modal-box">
+    <div class="modal-header">
+      <h3 id="modal-title">–</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" id="modal-save-btn" onclick="saveRecord()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="confirm-body">
+      <div class="c-ico">🗑️</div>
+      <h3>¿Eliminar registro?</h3>
+      <p>Esta acción no se puede deshacer.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn-del-confirm" onclick="confirmDelete()">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span class="toast-ico" id="toast-ico"></span>
+  <span id="toast-msg"></span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ══════════════════════════════════════
+   CONFIGURACIÓN DE ROLES Y ESQUEMAS
+══════════════════════════════════════ */
+const ROLE_CONFIG = {
+  admin: {
+    label:'Administrador', ico:'🛡️', cls:'role-admin',
+    collections:[
+      {key:'rutas',       label:'Rutas',       ico:'🗺️', perms:['read','create','update','delete']},
+      {key:'usuarios',    label:'Usuarios',    ico:'👥', perms:['read','create','delete']},
+      {key:'camiones',    label:'Camiones',    ico:'🚛', perms:['read','create','update','delete']},
+      {key:'conductores', label:'Conductores', ico:'👤', perms:['read','create','update','delete']},
+    ]
+  },
+  conductor: {
+    label:'Conductor', ico:'🚛', cls:'role-conductor',
+    collections:[
+      {key:'rutas',    label:'Mis Rutas', ico:'🗺️', perms:['read']},
+      {key:'camiones', label:'Camiones',  ico:'🚛', perms:['read']},
+    ],
+    // Acciones propias del conductor (aparecen en la sidebar como secciones especiales)
+    acciones:[
+      {key:'viaje',      label:'Iniciar Viaje',       ico:'🚀'},
+      {key:'incidencia', label:'Reportar Incidencia',  ico:'⚠️'},
+      {key:'mis_viajes', label:'Mis Viajes',            ico:'📋'},
+    ]
+  },
+  usuario: {
+    label:'Usuario', ico:'👤', cls:'role-user',
+    collections:[
+      {key:'rutas', label:'Rutas Activas', ico:'🗺️', perms:['read']},
+    ]
+  }
+};
+
+const SCHEMAS = {
+  rutas:[
+    {k:'nombre',      label:'Nombre de ruta', type:'text',   req:true,
+     pattern:/^[\w\s\-áéíóúÁÉÍÓÚüÜñÑ]{3,80}$/, hint:'Mín 3 caracteres, solo letras, números, espacios y guiones'},
+    {k:'origen',      label:'Origen',         type:'text',   req:true},
+    {k:'destino',     label:'Destino',        type:'text',   req:true},
+    {k:'duracion',    label:'_hidden', type:'text'},
+    {k:'distancia',   label:'_hidden', type:'text'},
+    {k:'estado',      label:'Estado',         type:'select', opts:['Activa','Inactiva','Suspendida']},
+    {k:'origen_lat',  label:'_hidden', type:'number'},
+    {k:'origen_lon',  label:'_hidden', type:'number'},
+    {k:'destino_lat', label:'_hidden', type:'number'},
+    {k:'destino_lon', label:'_hidden', type:'number'},
+  ],
+  usuarios:[
+    {k:'nombre',   label:'Nombre completo', type:'text',     req:true,
+     pattern:/^[A-Za-záéíóúÁÉÍÓÚüÜñÑ\s]{3,80}$/, hint:'Solo letras y espacios, mín 3 caracteres'},
+    {k:'username', label:'Usuario',         type:'text',     req:true,
+     pattern:/^[A-Za-z0-9_]{3,20}$/, hint:'Letras, números y _ · 3-20 caracteres'},
+    {k:'password', label:'Contraseña',      type:'password', req:true,
+     pattern:/^(?=.*[A-Za-z])(?=.*\d).{8,}$/, hint:'Mín 8 caracteres, al menos una letra y un número'},
+    {k:'rol',      label:'Rol',             type:'select',   opts:['admin','conductor','usuario'], req:true},
+  ],
+  camiones:[
+    {k:'placa',       label:'Placa',       type:'text', req:true,
+     pattern:/^[A-Za-z]{2,4}-[A-Za-z0-9]{3,4}$/, hint:'Formato: ECO-001 o ABC-1234'},
+    {k:'modelo',      label:'Modelo',      type:'text', req:true},
+    {k:'capacidad',   label:'Capacidad (ton)', type:'number',
+     pattern:/^\d+(\.\d+)?$/, hint:'Solo el número, ej: 12 o 8.5 — la unidad "ton" se muestra en la tabla'},
+    {k:'combustible', label:'Combustible', type:'text'},
+    {k:'estado',      label:'Estado',      type:'select', opts:['Operativo','Mantenimiento','Fuera de servicio']},
+  ],
+  conductores:[
+    {k:'usuario_id', label:'_hidden', type:'text'},
+    {k:'nombre',     label:'Nombre completo', type:'text', req:true, readonly:true,
+     hint:'Se obtiene del usuario vinculado'},
+    {k:'licencia',   label:'Licencia', type:'text', req:true,
+     pattern:/^(LIC-[A-Za-z0-9]{2,10}|[A-Za-z0-9\-]{4,15})$/i, hint:'Ejemplo: LIC-001 o A12345'},
+    {k:'telefono',   label:'Teléfono', type:'tel',
+     pattern:/^\+?[\d\s\-]{7,20}$/, hint:'7-15 dígitos, puede incluir +, - y espacios'},
+    {k:'estado',     label:'Estado',   type:'select', opts:['Activo','Inactivo','Suspendido']},
+  ],
+};
+
+/* ══════════════════════════════════════
+   ESTADO GLOBAL
+══════════════════════════════════════ */
+let currentRole=null, currentUser=null, currentCol=null;
+let editingId=null, deletingId=null, selectedRole=null;
+let localData = {};   // caché local de los datos de MongoDB
+let leafletMap=null, mapLayers=[];
+let currentView='table';
+let pickerMap=null, pickerOrigen=null, pickerDestino=null, pickerLine=null, pickerStep=0;
+
+/* ══════════════════════════════════════
+   API HELPERS — todas las llamadas van a Flask
+══════════════════════════════════════ */
+async function api(method, path, body=null){
+  const opts = {
+    method,
+    headers:{'Content-Type':'application/json'},
+    credentials:'same-origin'
+  };
+  if(body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  const json = await res.json();
+  if(!res.ok) throw new Error(json.error || 'Error del servidor');
+  return json;
+}
+
+/* ══════════════════════════════════════
+   CAPTCHA
+══════════════════════════════════════ */
+async function loadCaptcha(){
+  const eq  = document.getElementById('captcha-pregunta');
+  const ans = document.getElementById('captcha-answer');
+  const btn = document.getElementById('btn-login');
+  const blocked = document.getElementById('captcha-blocked');
+
+  if(eq) eq.textContent = '…';
+  if(ans){ ans.value=''; ans.disabled=true; }
+
+  try {
+    const res = await fetch('/api/captcha', {credentials:'same-origin'});
+    const data = await res.json();
+
+    if(res.status === 429){
+      // IP bloqueada por demasiados intentos
+      if(btn) btn.disabled = true;
+      if(blocked){
+        blocked.style.display='block';
+        blocked.textContent = `🔒 ${data.error}`;
+        // Cuenta regresiva visual
+        if(data.restante){
+          let seg = data.restante;
+          const iv = setInterval(()=>{
+            seg--;
+            blocked.textContent = `🔒 Demasiados intentos fallidos. Espera ${seg} seg.`;
+            if(seg <= 0){ clearInterval(iv); loadCaptcha(); }
+          }, 1000);
+        }
+      }
+      if(eq) eq.textContent = '–';
+      return;
+    }
+
+    // Ocultar banner de bloqueo si ya pasó
+    if(blocked) blocked.style.display = 'none';
+    if(btn) btn.disabled = false;
+    if(ans) ans.disabled = false;
+    if(eq) eq.textContent = data.pregunta + ' ';
+  } catch(e){
+    if(eq) eq.textContent = 'Error';
+  }
+}
+
+/* ══════════════════════════════════════
+   LOGIN
+══════════════════════════════════════ */
+function selectRole(r,el){
+  selectedRole=r;
+  document.querySelectorAll('.role-opt').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function doLogin() {
+  const username = document.getElementById('username').value.trim();
+  const pass     = document.getElementById('password').value;
+  const captcha  = document.getElementById('captcha-answer').value.trim();
+  const err      = document.getElementById('login-err');
+
+  if (!selectedRole) {
+    err.textContent = 'Debes seleccionar un rol.';
+    return;
+  }
+  if (!username) { err.textContent = 'Ingresa tu usuario'; return; }
+  if (!pass)     { err.textContent = 'Ingresa tu contraseña'; return; }
+  if (!captcha)  { err.textContent = 'Responde la verificación de seguridad'; return; }
+
+  err.textContent = '';
+
+  try {
+    const user = await api('POST', '/api/login', {
+      username,
+      password: pass,
+      rol:      selectedRole,
+      captcha:  captcha,
+    });
+
+    if (!user.rol || user.rol !== selectedRole) {
+      throw new Error('Tu cuenta no tiene los permisos para el rol seleccionado.');
+    }
+
+    currentRole = user.rol;
+    currentUser = user;
+
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+    buildSidebar();
+    showWelcome();
+
+  } catch (e) {
+    err.textContent = e.message;
+    // Regenerar CAPTCHA en cualquier fallo (uso único)
+    loadCaptcha();
+    document.getElementById('captcha-answer').value = '';
+  }
+}
+
+/* ══════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════ */
+function buildSidebar(){
+  const cfg = ROLE_CONFIG[currentRole] || ROLE_CONFIG['usuario'];
+  const accionesHtml = (cfg.acciones||[]).map(a=>`
+    <div class="sb-item" id="sb-accion-${a.key}" onclick="openAccion('${a.key}')">
+      <div class="s-ico">${a.ico}</div>
+      <span class="s-label">${a.label}</span>
+    </div>`).join('');
+
+  document.getElementById('sidebar').innerHTML=`
+    <div class="sb-logo">
+      <div class="ico">♻️</div><div class="txt">ECO<span>ruta</span></div>
+    </div>
+    <div class="sb-user ${cfg.cls}">
+      <div class="u-name">${currentUser.nombre}</div>
+      <div class="u-role">${cfg.ico} ${cfg.label}</div>
+    </div>
+    <nav class="sb-nav">
+      ${cfg.acciones ? `<div class="sb-section">Mis acciones</div>${accionesHtml}<div class="sb-section">Consultas</div>` : '<div class="sb-section">Colecciones</div>'}
+      ${cfg.collections.map(c=>`
+        <div class="sb-item" id="sb-${c.key}" onclick="openCollection('${c.key}')">
+          <div class="s-ico">${c.ico}</div>
+          <span class="s-label">${c.label}</span>
+          ${c.perms.includes('create')?`<span class="s-badge">+</span>`:''}
+        </div>`).join('')}
+    </nav>
+    <div class="sb-footer">
+      <button class="btn-logout" onclick="doLogout()">⏻ Cerrar sesión</button>
+    </div>`;
+}
+
+async function doLogout(){
+  await api('POST','/api/logout');
+  currentRole=null; currentUser=null; currentCol=null; selectedRole=null;
+  localData={};
+  if(leafletMap){leafletMap.remove();leafletMap=null;}
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.querySelectorAll('.role-opt').forEach(x=>x.classList.remove('selected'));
+  document.getElementById('username').value='';
+  document.getElementById('password').value='';
+}
+
+/* ══════════════════════════════════════
+   COLLECTION VIEW
+══════════════════════════════════════ */
+async function openCollection(key){
+  document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('active'));
+  const el=document.getElementById('sb-'+key);
+  if(el) el.classList.add('active');
+
+  const cfg    = ROLE_CONFIG[currentRole] || ROLE_CONFIG['usuario'];
+  const colCfg = cfg.collections.find(c=>c.key===key);
+  currentCol   = key;
+  currentView  = 'table';
+
+  const canCreate = colCfg.perms.includes('create');
+  const canEdit   = colCfg.perms.includes('update');
+  const canDel    = colCfg.perms.includes('delete');
+  const schema    = SCHEMAS[key]||[];
+  const displayCols = schema.filter(f=>!f.k.includes('_lat')&&!f.k.includes('_lon')&&f.label!=='_hidden').slice(0,4);
+  const mapToggle   = key==='rutas' ? `
+    <div class="view-toggle">
+      <button class="vt-btn active" id="vt-table" onclick="switchView('table')">📋 Tabla</button>
+      <button class="vt-btn" id="vt-map" onclick="switchView('map')">🗺️ Mapa</button>
+    </div>` : '';
+
+  const mc = document.getElementById('main-content');
+  mc.innerHTML=`
+    <div class="main-header">
+      <div>
+        <div class="breadcrumb">ECOruta / <span>${colCfg.label}</span></div>
+        <h1>${colCfg.ico} ${colCfg.label}</h1>
+      </div>
+      <div style="display:flex;gap:.8rem;align-items:center">
+        ${mapToggle}
+        ${canCreate?`<button class="btn-add" onclick="openCreate()">＋ Nuevo registro</button>`:''}
+      </div>
+    </div>
+    <div id="view-table">
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div>
+            <span class="tbl-title">${colCfg.label}</span>
+            &nbsp;<span class="tbl-count" id="tbl-count">cargando…</span>
+          </div>
+          <div class="search-box">
+            <span>🔍</span>
+            <input placeholder="Buscar…" oninput="filterTable(this.value)"/>
+          </div>
+        </div>
+        <table id="col-table">
+          <thead><tr>
+            <th>#ID</th>
+            ${displayCols.map(f=>`<th>${f.label}</th>`).join('')}
+            ${(canEdit||canDel||key==='rutas')?'<th>Acciones</th>':''}
+          </tr></thead>
+          <tbody id="col-tbody"><tr class="loading-row"><td colspan="99">⏳ Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="view-map" style="display:none">
+      <div class="map-panel">
+        <div class="map-toolbar">
+          <h3>🗺️ Mapa de rutas</h3>
+          <div class="map-legend">
+            <span><span class="dot dot-origin"></span> Origen</span>
+            <span><span class="dot dot-dest"></span> Destino</span>
+            <span><span class="dot-line"></span> Trayecto</span>
+          </div>
+        </div>
+        <div id="ruta-map"></div>
+      </div>
+    </div>`;
+
+  /* Cargar datos desde MongoDB vía Flask */
+  try {
+    // El usuario solo ve rutas activas; el resto usa el endpoint genérico
+    const endpoint = (currentRole === 'usuario' && key === 'rutas')
+      ? '/api/publico/rutas'
+      : `/api/${key}`;
+    const records = await api('GET', endpoint);
+    localData[key] = records;
+    const countEl = document.getElementById('tbl-count');
+    if(countEl) countEl.textContent = `${records.length} ${currentRole==='usuario'?'rutas activas':'documentos'}`;
+    const tbody = document.getElementById('col-tbody');
+    if(tbody) tbody.innerHTML = renderRows(records, displayCols, canEdit, canDel, key==='rutas');
+  } catch(e){
+    const tbody = document.getElementById('col-tbody');
+    if(tbody) tbody.innerHTML=`<tr class="empty-row"><td colspan="99">❌ Error al cargar: ${e.message}</td></tr>`;
+  }
+}
+
+/* ── Vista tabla / mapa ── */
+function switchView(v){
+  currentView=v;
+  document.getElementById('view-table').style.display = v==='table'?'block':'none';
+  document.getElementById('view-map').style.display   = v==='map'  ?'block':'none';
+  document.getElementById('vt-table').classList.toggle('active',v==='table');
+  document.getElementById('vt-map').classList.toggle('active',  v==='map');
+  if(v==='map') initMap();
+}
+
+/* ── Leaflet mapa principal ── */
+function initMap(){
+  if(leafletMap){leafletMap.remove();leafletMap=null;mapLayers=[];}
+  const rutas=(localData['rutas']||[]).filter(r=>r.origen_lat&&r.destino_lat);
+  if(!rutas.length){
+    document.getElementById('ruta-map').innerHTML=
+      `<div class="map-no-coords">⚠️ Ninguna ruta tiene coordenadas aún.<br/>Edita las rutas y selecciona los puntos en el mapa.</div>`;
+    return;
+  }
+  leafletMap=L.map('ruta-map',{zoomControl:true}).setView([19.4326,-99.1332],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(leafletMap);
+  const iconO=L.divIcon({className:'',html:'<div class="custom-marker-origin"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+  const iconD=L.divIcon({className:'',html:'<div class="custom-marker-dest"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+  const colors=['#6effc5','#2fb87e','#93c5fd','#f0a500','#e05c5c'];
+  const bounds=[];
+  rutas.forEach((r,i)=>{
+    const color=colors[i%colors.length];
+    const orig=[r.origen_lat,r.origen_lon], dest=[r.destino_lat,r.destino_lon];
+    L.polyline([orig,dest],{color,weight:4,opacity:.85,dashArray:'8 4'}).addTo(leafletMap);
+    L.marker(orig,{icon:iconO}).addTo(leafletMap).bindPopup(`<b>🟢 Origen</b><br/>${r.nombre}<br/>${r.origen}`);
+    L.marker(dest,{icon:iconD}).addTo(leafletMap).bindPopup(`<b>🟡 Destino</b><br/>${r.nombre}<br/>${r.destino}`);
+    bounds.push(orig,dest);
+  });
+  if(bounds.length) leafletMap.fitBounds(bounds,{padding:[30,30]});
+}
+
+function verEnMapa(id){
+  switchView('map');
+  setTimeout(()=>{
+    if(!leafletMap) return;
+    const r=(localData['rutas']||[]).find(x=>x._id===id);
+    if(!r||!r.origen_lat) return;
+    leafletMap.setView([(r.origen_lat+r.destino_lat)/2,(r.origen_lon+r.destino_lon)/2],14);
+  },200);
+}
+
+/* ── Render filas ── */
+function renderRows(records,displayCols,canEdit,canDel,isRutas=false){
+  if(!records.length)
+    return `<tr class="empty-row"><td colspan="99">No hay registros en esta colección</td></tr>`;
+  return records.map(r=>`
+    <tr>
+      <td><code style="font-size:.72rem;color:rgba(244,240,230,.4)">${r._id.slice(-6)}</code></td>
+      ${displayCols.map(f=>{
+        const v=r[f.k];
+        if(f.k==='estado'){
+          const sv=String(v).toLowerCase();
+          const cls=sv==='activa'||sv==='operativo'||sv==='activo'?'badge-green':
+                    sv==='inactiva'||sv==='mantenimiento'||sv==='inactivo'?'badge-yellow':'badge-red';
+          return `<td><span class="badge ${cls}">${v??'–'}</span></td>`;
+        }
+        if(f.k==='rol'){
+          const cls=v==='admin'?'badge-yellow':v==='conductor'?'badge-blue':'badge-green';
+          return `<td><span class="badge ${cls}">${v}</span></td>`;
+        }
+        if(f.k==='capacidad'){
+          return `<td>${v!=null&&v!==''?v+' ton':'–'}</td>`;
+        }
+        return `<td>${v??'–'}</td>`;
+      }).join('')}
+      ${(canEdit||canDel||isRutas)?`
+        <td><div class="td-actions">
+          ${isRutas?`<button class="btn-map" onclick="verEnMapa('${r._id}')">🗺️ Ver</button>`:''}
+          ${canEdit?`<button class="btn-edit" onclick='openEdit("${r._id}")'>✏️ Editar</button>`:''}
+          ${canDel ?`<button class="btn-del"  onclick='askDelete("${r._id}")'>🗑️</button>`:''}
+        </div></td>`:''}
+    </tr>`).join('');
+}
+
+function filterTable(q){
+  const cfg     = ROLE_CONFIG[currentRole]||ROLE_CONFIG['usuario'];
+  const colCfg  = cfg.collections.find(c=>c.key===currentCol);
+  const schema  = SCHEMAS[currentCol]||[];
+  const displayCols = schema.filter(f=>!f.k.includes('_lat')&&!f.k.includes('_lon')&&f.label!=='_hidden').slice(0,4);
+  const canEdit = colCfg.perms.includes('update');
+  const canDel  = colCfg.perms.includes('delete');
+  const filtered=(localData[currentCol]||[]).filter(r=>
+    Object.values(r).some(v=>String(v).toLowerCase().includes(q.toLowerCase()))
+  );
+  document.getElementById('col-tbody').innerHTML=renderRows(filtered,displayCols,canEdit,canDel,currentCol==='rutas');
+}
+
+/* ══════════════════════════════════════
+   CRUD MODAL
+══════════════════════════════════════ */
+function buildForm(record={}){
+  if(currentCol==='rutas') return buildRutaForm(record);
+  const schema=SCHEMAS[currentCol]||[];
+  let html='';
+  for(let i=0;i<schema.length;i+=2){
+    const f1=schema[i],f2=schema[i+1];
+    html+=`<div class="m-row">`+buildField(f1,record)+(f2?buildField(f2,record):'')+`</div>`;
+  }
+  return html;
+}
+
+function buildRutaForm(record={}){
+  const hc=record.origen_lat&&record.destino_lat;
+  return `
+    <div class="m-row">
+      ${buildField({k:'nombre',label:'Nombre de ruta',type:'text',req:true},record)}
+      ${buildField({k:'estado',label:'Estado',type:'select',opts:['Activa','Inactiva','Suspendida']},record)}
+    </div>
+    <div class="m-row">
+      ${buildField({k:'origen', label:'Origen (nombre)', type:'text',req:true},record)}
+      ${buildField({k:'destino',label:'Destino (nombre)',type:'text',req:true},record)}
+    </div>
+    <input type="hidden" id="f_duracion"    value="${record.duracion  ||''}"/>
+    <input type="hidden" id="f_distancia"   value="${record.distancia ||''}"/>
+    <input type="hidden" id="f_origen_lat"  value="${record.origen_lat ||''}"/>
+    <input type="hidden" id="f_origen_lon"  value="${record.origen_lon ||''}"/>
+    <input type="hidden" id="f_destino_lat" value="${record.destino_lat||''}"/>
+    <input type="hidden" id="f_destino_lon" value="${record.destino_lon||''}"/>
+    ${(record.duracion||record.distancia)?`
+    <div style="display:flex;gap:.8rem;margin-bottom:.4rem">
+      <div style="flex:1;background:rgba(47,184,126,.08);border:1px solid rgba(110,255,197,.2);border-radius:10px;padding:.6rem 1rem">
+        <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(244,240,230,.4);margin-bottom:.25rem">⏱ Tiempo estimado</div>
+        <div id="info-duracion" style="font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;color:var(--g-neon)">${record.duracion||'–'}</div>
+      </div>
+      <div style="flex:1;background:rgba(47,184,126,.08);border:1px solid rgba(110,255,197,.2);border-radius:10px;padding:.6rem 1rem">
+        <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(244,240,230,.4);margin-bottom:.25rem">📏 Distancia</div>
+        <div id="info-distancia" style="font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;color:var(--g-neon)">${record.distancia||'–'}</div>
+      </div>
+    </div>`:`
+    <div style="display:flex;gap:.8rem;margin-bottom:.4rem">
+      <div style="flex:1;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.6rem 1rem">
+        <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(244,240,230,.4);margin-bottom:.25rem">⏱ Tiempo estimado</div>
+        <div id="info-duracion" style="font-size:.82rem;color:rgba(244,240,230,.35)">Se calculará al trazar la ruta</div>
+      </div>
+      <div style="flex:1;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.6rem 1rem">
+        <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(244,240,230,.4);margin-bottom:.25rem">📏 Distancia</div>
+        <div id="info-distancia" style="font-size:.82rem;color:rgba(244,240,230,.35)">Se calculará al trazar la ruta</div>
+      </div>
+    </div>`}
+    <div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(244,240,230,.4)">📍 Selecciona puntos en el mapa</div>
+        <button class="btn-reset-picker" onclick="resetPicker()">↺ Limpiar</button>
+      </div>
+      <div class="picker-steps">
+        <div class="step-pill ${hc?'done':'active'}" id="step-origen">
+          <span class="sp-ico">🟢</span><span class="sp-lbl">1. Origen</span>
+          <span class="sp-val" id="step-origen-val">${hc?Number(record.origen_lat).toFixed(4)+', '+Number(record.origen_lon).toFixed(4):'Haz clic en el mapa'}</span>
+        </div>
+        <div class="step-pill ${hc?'done':''}" id="step-destino">
+          <span class="sp-ico">🟡</span><span class="sp-lbl">2. Destino</span>
+          <span class="sp-val" id="step-destino-val">${hc?Number(record.destino_lat).toFixed(4)+', '+Number(record.destino_lon).toFixed(4):'Primero elige origen'}</span>
+        </div>
+      </div>
+      <div class="picker-hint" id="picker-hint">${hc?'✅ Ambos puntos listos — arrastra para ajustar':'👆 Primer clic = Origen | Segundo clic = Destino'}</div>
+      <div id="picker-map"></div>
+    </div>`;
+}
+
+function buildField(f,record){
+  if(f.label==='_hidden') return '';
+  const val = record[f.k] ?? '';
+  let inp = '';
+  if(f.type==='select'){
+    inp = `<select id="f_${f.k}">${f.opts.map(o=>`<option value="${o}"${String(val)===o?' selected':''}>${o}</option>`).join('')}</select>`;
+  } else if(f.readonly){
+    inp = `<input type="${f.type||'text'}" id="f_${f.k}" value="${val}" placeholder="${f.label}"
+             readonly style="opacity:.55;cursor:default;background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.07)"/>`;
+  } else {
+    const validateAttr = f.pattern ? `oninput="validateField(this,'${f.k}')"` : '';
+    // Verificación de unicidad de placa al salir del campo
+    const uniqueAttr = (f.k === 'placa' && currentCol === 'camiones')
+      ? `onblur="checkPlacaUnica(this)"`
+      : '';
+    inp = `<input type="${f.type||'text'}" id="f_${f.k}" value="${val}" placeholder="${f.label}" ${validateAttr} ${uniqueAttr}/>`;
+  }
+  const hintHtml = f.hint && !f.readonly
+    ? `<div class="field-hint" id="hint_${f.k}">💡 ${f.hint}</div>`
+    : f.readonly
+      ? `<div class="field-hint">🔗 ${f.hint}</div>`
+      : '';
+  const errHtml = f.readonly ? '' : `<div class="field-err" id="err_${f.k}"></div>`;
+  return `<div class="m-field"><label>${f.label}${f.req&&!f.readonly?' *':''}</label>${inp}${hintHtml}${errHtml}</div>`;
+}
+
+/* Comprueba en tiempo real si una placa ya existe en la BD */
+async function checkPlacaUnica(el){
+  const placa = el.value.trim();
+  const errEl = document.getElementById('err_placa');
+  if(!placa) return;
+
+  // Formato inválido → la validación de regex ya lo cubrió, no consultamos
+  const RE_PLACA = /^[A-Za-z]{2,4}-[A-Za-z0-9]{3,4}$/;
+  if(!RE_PLACA.test(placa)){
+    if(errEl) errEl.textContent = '✖ Formato de placa inválido.';
+    el.style.borderColor = 'var(--danger)';
+    return;
+  }
+
+  try {
+    // Consulta la colección para ver si existe otro vehículo con esa placa
+    const todos = localData['camiones'] || [];
+    const duplicado = todos.find(v =>
+      v.placa.toLowerCase() === placa.toLowerCase() && v._id !== editingId
+    );
+    if(duplicado){
+      el.style.borderColor = 'var(--danger)';
+      if(errEl) errEl.textContent = `✖ La placa "${placa.toUpperCase()}" ya está registrada.`;
+    } else {
+      el.style.borderColor = 'var(--g-bright)';
+      if(errEl) errEl.textContent = '';
+    }
+  } catch(e){
+    // Si falla la consulta local, el servidor lo rechazará igualmente
+  }
+}
+
+/* Validación visual en tiempo real de un campo */
+function validateField(el, key){
+  const schema = SCHEMAS[currentCol] || [];
+  const fieldDef = schema.find(f => f.k === key);
+  if(!fieldDef || !fieldDef.pattern) return true;
+
+  const val = el.value.trim();
+  const errEl  = document.getElementById('err_' + key);
+  const hintEl = document.getElementById('hint_' + key);
+
+  // Campo vacío y requerido — error de obligatorio
+  if(!val && fieldDef.req){
+    el.style.borderColor = 'var(--danger)';
+    if(errEl) errEl.textContent = '⚠ Este campo es obligatorio.';
+    if(hintEl) hintEl.style.display = 'none';
+    return false;
+  }
+
+  // Campo con valor — validar formato
+  if(val && !fieldDef.pattern.test(val)){
+    el.style.borderColor = 'var(--danger)';
+    if(errEl) errEl.textContent = '✖ ' + (fieldDef.hint || 'Formato inválido.');
+    if(hintEl) hintEl.style.display = 'none';
+    return false;
+  }
+
+  // Válido
+  el.style.borderColor = val ? 'var(--g-bright)' : '';
+  if(errEl) errEl.textContent = '';
+  if(hintEl) hintEl.style.display = val ? 'none' : '';
+  return true;
+}
+
+/* Corre todas las validaciones del formulario activo antes de guardar */
+function validateForm(){
+  const schema = SCHEMAS[currentCol] || [];
+  let valid = true;
+  for(const f of schema){
+    if(f.label === '_hidden' || f.readonly) continue;
+    const el = document.getElementById('f_' + f.k);
+    if(!el || el.type === 'hidden' || el.tagName === 'SELECT') continue;
+    if(!validateField(el, f.k)) valid = false;
+  }
+  return valid;
+}
+
+function openCreate(){
+  editingId=null;
+  const isRutas=currentCol==='rutas';
+  document.getElementById('modal-title').textContent=`Nuevo · ${currentCol}`;
+  document.getElementById('crud-modal-box').classList.toggle('modal-wide',isRutas);
+  document.getElementById('modal-body').innerHTML=buildForm();
+  document.getElementById('modal-save-btn').textContent='Crear';
+  openModal('crud-modal');
+  if(isRutas) setTimeout(()=>initPickerMap({}),100);
+}
+
+function openEdit(id){
+  const rec=(localData[currentCol]||[]).find(r=>r._id===id);
+  if(!rec) return;
+  editingId=id;
+  const isRutas=currentCol==='rutas';
+
+  // Normalizar coordenadas a número para que las comparaciones !== '' funcionen
+  if(isRutas){
+    ['origen_lat','origen_lon','destino_lat','destino_lon'].forEach(k=>{
+      if(rec[k]!=null && rec[k]!=='') rec[k]=parseFloat(rec[k]);
+      else rec[k]=null;
+    });
+  }
+
+  document.getElementById('modal-title').textContent=`Editar · ${id.slice(-6)}`;
+  document.getElementById('crud-modal-box').classList.toggle('modal-wide',isRutas);
+  document.getElementById('modal-body').innerHTML=buildForm(rec);
+  document.getElementById('modal-save-btn').textContent='Guardar cambios';
+  openModal('crud-modal');
+  if(isRutas) setTimeout(()=>initPickerMap(rec),120);
+}
+
+/* ── saveRecord → llama a Flask API ── */
+async function saveRecord(){
+  const schema = SCHEMAS[currentCol] || [];
+
+  // 1. Campos obligatorios vacíos
+  for(const f of schema){
+    if(f.req){
+      const el = document.getElementById('f_' + f.k);
+      if(el && !el.value.trim()){
+        showToast('El campo "' + f.label + '" es obligatorio', 'error');
+        if(el) el.focus();
+        return;
+      }
+    }
+  }
+
+  // 2. Validación de formatos (regex)
+  if(!validateForm()){
+    showToast('Corrige los campos marcados en rojo antes de continuar', 'error');
+    return;
+  }
+
+  // 2b. Bloquear si hay error de placa duplicada detectado en cliente
+  if(currentCol === 'camiones'){
+    const errPlaca = document.getElementById('err_placa');
+    if(errPlaca && errPlaca.textContent.includes('ya está registrada')){
+      showToast('La placa ingresada ya existe — usa una diferente', 'error');
+      document.getElementById('f_placa')?.focus();
+      return;
+    }
+  }
+
+  // 3. Recolectar datos del formulario
+  const data = {};
+  schema.forEach(f => {
+    if(f.readonly) return;   // campos de solo lectura no se envían al servidor
+    const el = document.getElementById('f_' + f.k);
+    if(!el) return;
+    data[f.k] = f.type === 'number' ? Number(el.value) : el.value;
+  });
+
+  try {
+    if(editingId){
+      await api('PUT', `/api/${currentCol}/${editingId}`, data);
+      showToast('Registro actualizado ✓', 'success');
+    } else {
+      await api('POST', `/api/${currentCol}`, data);
+      showToast('Registro creado ✓', 'success');
+    }
+    closeModal();
+    openCollection(currentCol);
+  } catch(e){
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+function askDelete(id){deletingId=id;openModal('confirm-modal');}
+
+async function confirmDelete(){
+  try {
+    await api('DELETE', `/api/${currentCol}/${deletingId}`);
+    showToast('Registro eliminado','success');
+    closeConfirm();
+    openCollection(currentCol);
+  } catch(e){
+    showToast('Error: '+e.message,'error');
+    closeConfirm();
+  }
+}
+
+/* ── Picker map ── */
+function initPickerMap(rec={}){
+  if(pickerMap){pickerMap.remove();pickerMap=null;}
+  pickerOrigen=null;pickerDestino=null;pickerLine=null;
+
+  const hasOrig = rec.origen_lat  != null && rec.origen_lat  !== '';
+  const hasDest = rec.destino_lat != null && rec.destino_lat !== '';
+  pickerStep = (hasOrig && hasDest) ? 2 : hasOrig ? 1 : 0;
+
+  // Centro por defecto: San José del Rincón, Estado de México
+  pickerMap = L.map('picker-map',{zoomControl:true}).setView([19.5800,-100.1214],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(pickerMap);
+
+  const mkO = L.divIcon({className:'',html:'<div class="custom-marker-origin"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+  const mkD = L.divIcon({className:'',html:'<div class="custom-marker-dest"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+
+  // Restaurar marcadores guardados
+  if(hasOrig){
+    pickerOrigen = L.marker([+rec.origen_lat, +rec.origen_lon],{icon:mkO,draggable:true})
+      .addTo(pickerMap).bindPopup('🟢 Origen');
+    pickerOrigen.on('dragend', e=>{
+      const p=e.target.getLatLng();
+      setCoord('origen',p.lat,p.lng);
+      drawPickerLine();
+    });
+  }
+  if(hasDest){
+    pickerDestino = L.marker([+rec.destino_lat, +rec.destino_lon],{icon:mkD,draggable:true})
+      .addTo(pickerMap).bindPopup('🟡 Destino');
+    pickerDestino.on('dragend', e=>{
+      const p=e.target.getLatLng();
+      setCoord('destino',p.lat,p.lng);
+      drawPickerLine();
+    });
+  }
+
+  // Ajustar vista y trazar ruta una vez que el mapa esté renderizado
+  pickerMap.whenReady(()=>{
+    requestAnimationFrame(()=>{
+      pickerMap.invalidateSize();
+      if(hasOrig && hasDest){
+        pickerMap.fitBounds(
+          [[+rec.origen_lat,+rec.origen_lon],[+rec.destino_lat,+rec.destino_lon]],
+          {padding:[50,50]}
+        );
+        // Trazar la ruta real OSRM con los puntos persistidos
+        drawPickerLine();
+      } else if(hasOrig){
+        pickerMap.setView([+rec.origen_lat,+rec.origen_lon],14);
+      }
+      updatePickerUI();
+    });
+  });
+
+  // Manejador de clics para añadir/remplazar puntos
+  pickerMap.on('click', function(e){
+    const {lat,lng} = e.latlng;
+    if(pickerStep === 0){
+      if(pickerOrigen) pickerMap.removeLayer(pickerOrigen);
+      pickerOrigen = L.marker([lat,lng],{icon:mkO,draggable:true})
+        .addTo(pickerMap).bindPopup('🟢 Origen').openPopup();
+      pickerOrigen.on('dragend', ev=>{
+        const p=ev.target.getLatLng();
+        setCoord('origen',p.lat,p.lng);
+        drawPickerLine();
+      });
+      setCoord('origen',lat,lng);
+      pickerStep=1;
+      updatePickerUI();
+    } else if(pickerStep === 1){
+      if(pickerDestino) pickerMap.removeLayer(pickerDestino);
+      pickerDestino = L.marker([lat,lng],{icon:mkD,draggable:true})
+        .addTo(pickerMap).bindPopup('🟡 Destino').openPopup();
+      pickerDestino.on('dragend', ev=>{
+        const p=ev.target.getLatLng();
+        setCoord('destino',p.lat,p.lng);
+        drawPickerLine();
+      });
+      setCoord('destino',lat,lng);
+      drawPickerLine();
+      pickerStep=2;
+      updatePickerUI();
+    } else if(pickerStep === 2){
+      // Con ambos puntos ya fijados, un clic mueve el origen al nuevo punto
+      // y pide seleccionar nuevo destino (reasignación completa)
+      if(pickerOrigen) pickerMap.removeLayer(pickerOrigen);
+      if(pickerDestino){ pickerMap.removeLayer(pickerDestino); pickerDestino=null; }
+      if(pickerLine){    pickerMap.removeLayer(pickerLine);    pickerLine=null;    }
+      pickerOrigen = L.marker([lat,lng],{icon:mkO,draggable:true})
+        .addTo(pickerMap).bindPopup('🟢 Origen').openPopup();
+      pickerOrigen.on('dragend', ev=>{
+        const p=ev.target.getLatLng();
+        setCoord('origen',p.lat,p.lng);
+        drawPickerLine();
+      });
+      setCoord('origen',lat,lng);
+      pickerStep=1;
+      updatePickerUI();
+    }
+  });
+}
+
+async function setCoord(tipo,lat,lng){
+  // 1. Guardar coordenadas para la persistencia en base de datos
+  document.getElementById('f_'+tipo+'_lat').value=lat.toFixed(6);
+  document.getElementById('f_'+tipo+'_lon').value=lng.toFixed(6);
+  
+  const el=document.getElementById('step-'+tipo+'-val');
+  if(el) el.textContent=lat.toFixed(4)+', '+lng.toFixed(4);
+
+  // 2. Geocodificación inversa para rellenar los inputs del formulario
+  const txtInput = document.getElementById('f_' + tipo);
+  if (txtInput) {
+    txtInput.placeholder = "Buscando dirección viales...";
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`, {
+        headers: { 'Accept-Language': 'es' }
+      });
+      const data = await response.json();
+      if (data && data.display_name) {
+        const direccionCorta = data.display_name.split(',').slice(0, 3).join(',').trim();
+        txtInput.value = direccionCorta;
+      }
+    } catch (error) {
+      console.error("Error en geocodificación:", error);
+      txtInput.value = `Ubicación (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    }
+  }
+}
+
+/* Calcula la ruta real con OSRM, traza la polilínea y actualiza
+   automáticamente los campos ocultos de duración y distancia.       */
+async function drawPickerLine(){
+  if(pickerLine) pickerMap.removeLayer(pickerLine);
+  if(!pickerOrigen||!pickerDestino) return;
+
+  const pOrig = pickerOrigen.getLatLng();
+  const pDest = pickerDestino.getLatLng();
+
+  // Indicar que se está calculando
+  _setRouteInfo('Calculando…', 'Calculando…');
+
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${pOrig.lng},${pOrig.lat};${pDest.lng},${pDest.lat}?overview=full&geometries=geojson`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+      const route = data.routes[0];
+
+      // Trazar polilínea siguiendo la carretera
+      const coordinates = route.geometry.coordinates.map(c => [c[1], c[0]]);
+      pickerLine = L.polyline(coordinates, {color:'#2fb87e', weight:5, opacity:.9}).addTo(pickerMap);
+
+      // Calcular valores formateados
+      const totalMin = Math.round(route.duration / 60);
+      const hours    = Math.floor(totalMin / 60);
+      const mins     = totalMin % 60;
+      const durStr   = hours > 0 ? `${hours} h ${mins} min` : `${mins} min`;
+
+      const km       = (route.distance / 1000).toFixed(1);
+      const distStr  = `${km} km`;
+
+      // Guardar en campos ocultos (se enviarán al guardar el formulario)
+      const durEl  = document.getElementById('f_duracion');
+      const distEl = document.getElementById('f_distancia');
+      if(durEl)  durEl.value  = durStr;
+      if(distEl) distEl.value = distStr;
+
+      _setRouteInfo(durStr, distStr);
+    } else {
+      // Fallback: línea recta sin datos de ruta
+      pickerLine = L.polyline([pOrig, pDest], {color:'#2fb87e', weight:4, dashArray:'8 4'}).addTo(pickerMap);
+      _setRouteInfo('No disponible', 'No disponible');
+    }
+  } catch (error) {
+    console.error('Error al trazar la ruta por carretera:', error);
+    pickerLine = L.polyline([pOrig, pDest], {color:'#2fb87e', weight:4, dashArray:'8 4'}).addTo(pickerMap);
+    _setRouteInfo('Error de red', 'Error de red');
+  }
+}
+
+/* Actualiza los paneles visuales de duración y distancia */
+function _setRouteInfo(duracion, distancia){
+  const dEl  = document.getElementById('info-duracion');
+  const diEl = document.getElementById('info-distancia');
+  if(dEl){
+    dEl.textContent = duracion;
+    dEl.style.color = (duracion==='Calculando…') ? 'rgba(244,240,230,.45)' : 'var(--g-neon)';
+    dEl.style.fontSize = '.95rem';
+    dEl.style.fontFamily = "'Syne',sans-serif";
+    dEl.style.fontWeight = '700';
+  }
+  if(diEl){
+    diEl.textContent = distancia;
+    diEl.style.color = (distancia==='Calculando…') ? 'rgba(244,240,230,.45)' : 'var(--g-neon)';
+    diEl.style.fontSize = '.95rem';
+    diEl.style.fontFamily = "'Syne',sans-serif";
+    diEl.style.fontWeight = '700';
+  }
+}
+
+function updatePickerUI(){
+  const hint=document.getElementById('picker-hint');
+  if(pickerStep===0){
+    document.getElementById('step-origen').className='step-pill active';
+    document.getElementById('step-destino').className='step-pill';
+    document.getElementById('step-origen-val').textContent='Haz clic en el mapa';
+    document.getElementById('step-destino-val').textContent='Primero elige origen';
+    if(hint) hint.textContent='👆 Primer clic = Origen | Segundo clic = Destino';
+  } else if(pickerStep===1){
+    document.getElementById('step-origen').className='step-pill done';
+    document.getElementById('step-destino').className='step-pill active';
+    document.getElementById('step-destino-val').textContent='Haz clic para el destino';
+    if(hint) hint.textContent='✅ Origen establecido — elige el destino final';
+  } else if(pickerStep===2){
+    document.getElementById('step-origen').className='step-pill done';
+    document.getElementById('step-destino').className='step-pill done';
+    if(hint) hint.textContent='✅ Ruta calculada — arrastra los pines para ajustar o haz clic para redibujar';
+  }
+}
+
+function resetPicker(){
+  if(pickerOrigen){pickerMap.removeLayer(pickerOrigen);pickerOrigen=null;}
+  if(pickerDestino){pickerMap.removeLayer(pickerDestino);pickerDestino=null;}
+  if(pickerLine){pickerMap.removeLayer(pickerLine);pickerLine=null;}
+  pickerStep=0;
+  ['origen_lat','origen_lon','destino_lat','destino_lon','duracion','distancia'].forEach(k=>{
+    const el=document.getElementById('f_'+k);if(el)el.value='';
+  });
+
+  const inputOrig = document.getElementById('f_origen');
+  const inputDest = document.getElementById('f_destino');
+  if (inputOrig) inputOrig.value = '';
+  if (inputDest) inputDest.value = '';
+
+  _setRouteInfo('Se calculará al trazar la ruta','Se calculará al trazar la ruta');
+  const dEl  = document.getElementById('info-duracion');
+  const diEl = document.getElementById('info-distancia');
+  if(dEl){  dEl.style.color=dEl.style.fontFamily=dEl.style.fontWeight=dEl.style.fontSize=''; dEl.style.color='rgba(244,240,230,.35)'; dEl.style.fontSize='.82rem'; }
+  if(diEl){ diEl.style.color=diEl.style.fontFamily=diEl.style.fontWeight=diEl.style.fontSize=''; diEl.style.color='rgba(244,240,230,.35)'; diEl.style.fontSize='.82rem'; }
+
+  document.getElementById('step-origen').className='step-pill active';
+  document.getElementById('step-destino').className='step-pill';
+  document.getElementById('step-origen-val').textContent='Haz clic en el mapa';
+  document.getElementById('step-destino-val').textContent='Primero elige origen';
+  document.getElementById('picker-hint').textContent='👆 Primer clic = Origen | Segundo clic = Destino';
+}
+
+
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(){
+  document.getElementById('crud-modal').classList.remove('open');
+  editingId=null;
+  if(pickerMap){pickerMap.remove();pickerMap=null;}
+  pickerOrigen=null;pickerDestino=null;pickerLine=null;pickerStep=0;
+}
+function closeConfirm(){document.getElementById('confirm-modal').classList.remove('open');deletingId=null;}
+
+function showWelcome(){
+  const cfg = ROLE_CONFIG[currentRole] || ROLE_CONFIG['usuario'];
+  const mc  = document.getElementById('main-content');
+
+  if(currentRole === 'conductor'){
+    mc.innerHTML=`
+      <div class="main-header">
+        <div><div class="breadcrumb">ECOruta / <span>Panel Conductor</span></div>
+        <h1>🚛 Bienvenido, ${currentUser.nombre}</h1></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:2rem">
+        <div class="rbac-card" onclick="openAccion('viaje')" style="cursor:pointer">
+          <div class="rc-ico">🚀</div>
+          <div class="rc-title">Iniciar Viaje</div>
+          <div class="rc-desc">Selecciona una ruta y camión para comenzar tu jornada</div>
+        </div>
+        <div class="rbac-card" onclick="openAccion('incidencia')" style="cursor:pointer">
+          <div class="rc-ico">⚠️</div>
+          <div class="rc-title">Reportar Incidencia</div>
+          <div class="rc-desc">Informa sobre obstáculos, averías o situaciones en ruta</div>
+        </div>
+        <div class="rbac-card" onclick="openAccion('mis_viajes')" style="cursor:pointer">
+          <div class="rc-ico">📋</div>
+          <div class="rc-title">Mis Viajes</div>
+          <div class="rc-desc">Historial de recorridos y viajes en curso</div>
+        </div>
+      </div>`;
+  } else if(currentRole === 'usuario'){
+    mc.innerHTML=`
+      <div class="main-header">
+        <div><div class="breadcrumb">ECOruta / <span>Consulta pública</span></div>
+        <h1>🗺️ Rutas disponibles</h1></div>
+      </div>
+      <div class="rbac-info-banner">
+        👁️ Tu cuenta tiene acceso de <strong>solo lectura</strong> a las rutas activas del sistema.
+      </div>`;
+    // Cargar directamente rutas activas para el usuario
+    openCollection('rutas');
+  } else {
+    // Admin: panel de bienvenida con métricas rápidas
+    mc.innerHTML=`
+      <div class="welcome-panel">
+        <div class="w-ico">${cfg.ico}</div>
+        <h2>Hola, ${currentUser.nombre}</h2>
+        <p>Tienes acceso completo a <strong>${cfg.collections.length}</strong> módulos como <strong>${cfg.label}</strong>.<br/>
+        Selecciona una colección del menú para comenzar.</p>
+      </div>`;
+  }
+}
+
+/* ══════════════════════════════════════
+   ACCIONES DEL CONDUCTOR
+══════════════════════════════════════ */
+async function openAccion(key){
+  // Marcar activo en sidebar
+  document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('active'));
+  const el = document.getElementById('sb-accion-'+key);
+  if(el) el.classList.add('active');
+
+  const mc = document.getElementById('main-content');
+
+  if(key === 'viaje'){
+    // Cargar rutas activas y camiones operativos
+    let rutas=[], camiones=[];
+    try { rutas    = await api('GET','/api/publico/rutas'); } catch(e){}
+    try { camiones = (await api('GET','/api/camiones')).filter(c=>c.estado==='Operativo'); } catch(e){}
+
+    mc.innerHTML=`
+      <div class="main-header">
+        <div><div class="breadcrumb">ECOruta / <span>Iniciar Viaje</span></div>
+        <h1>🚀 Iniciar Viaje</h1></div>
+      </div>
+      <div class="table-wrap" style="max-width:520px">
+        <div class="table-toolbar"><span class="tbl-title">Nuevo recorrido</span></div>
+        <div style="padding:1.5rem">
+          <div class="m-field"><label>Ruta *</label>
+            <select id="viaje-ruta">
+              <option value="">— Selecciona una ruta —</option>
+              ${rutas.map(r=>`<option value="${r._id}">${r.nombre} (${r.origen} → ${r.destino})</option>`).join('')}
+            </select>
+          </div>
+          <div class="m-field"><label>Camión *</label>
+            <select id="viaje-camion">
+              <option value="">— Selecciona un camión —</option>
+              ${camiones.map(c=>`<option value="${c._id}">${c.placa} — ${c.modelo}</option>`).join('')}
+            </select>
+          </div>
+          <div class="m-field"><label>Notas (opcional)</label>
+            <input type="text" id="viaje-notas" placeholder="Ej: Carga especial, condiciones del día…"/>
+          </div>
+          <div class="field-err" id="viaje-err" style="margin-bottom:.8rem"></div>
+          <button class="btn-save" style="width:100%" onclick="iniciarViaje()">🚀 Iniciar viaje</button>
+        </div>
+      </div>`;
+
+  } else if(key === 'incidencia'){
+    let rutas=[];
+    try { rutas = await api('GET','/api/publico/rutas'); } catch(e){}
+
+    mc.innerHTML=`
+      <div class="main-header">
+        <div><div class="breadcrumb">ECOruta / <span>Reportar Incidencia</span></div>
+        <h1>⚠️ Reportar Incidencia</h1></div>
+      </div>
+      <div class="table-wrap" style="max-width:520px">
+        <div class="table-toolbar"><span class="tbl-title">Nueva incidencia</span></div>
+        <div style="padding:1.5rem">
+          <div class="m-field"><label>Tipo *</label>
+            <select id="inc-tipo">
+              <option value="">— Selecciona un tipo —</option>
+              <option>Mecánica</option><option>Accidente</option>
+              <option>Obstrucción vial</option><option>Clima</option><option>Otro</option>
+            </select>
+          </div>
+          <div class="m-field"><label>Ruta afectada</label>
+            <select id="inc-ruta">
+              <option value="">— Ninguna / No aplica —</option>
+              ${rutas.map(r=>`<option value="${r._id}">${r.nombre}</option>`).join('')}
+            </select>
+          </div>
+          <div class="m-field"><label>Descripción * <span style="font-size:.7rem;opacity:.5">(mín 10 caracteres)</span></label>
+            <textarea id="inc-desc" rows="3" placeholder="Describe la situación con detalle…"
+              style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--cream);border-radius:10px;padding:.7rem 1rem;font-size:.88rem;resize:vertical"></textarea>
+          </div>
+          <div class="field-err" id="inc-err" style="margin-bottom:.8rem"></div>
+          <button class="btn-save" style="width:100%" onclick="reportarIncidencia()">⚠️ Enviar reporte</button>
+        </div>
+      </div>`;
+
+  } else if(key === 'mis_viajes'){
+    mc.innerHTML=`
+      <div class="main-header">
+        <div><div class="breadcrumb">ECOruta / <span>Mis Viajes</span></div>
+        <h1>📋 Mis Viajes</h1></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <span class="tbl-title">Historial de recorridos</span>
+          <span class="tbl-count" id="viajes-count">cargando…</span>
+        </div>
+        <table><thead><tr>
+          <th>Ruta</th><th>Camión</th><th>Inicio</th><th>Fin</th><th>Estado</th><th>Acción</th>
+        </tr></thead>
+        <tbody id="viajes-tbody"><tr class="loading-row"><td colspan="6">⏳ Cargando…</td></tr></tbody>
+        </table>
+      </div>`;
+    try {
+      const viajes = await api('GET','/api/conductor/viajes');
+      document.getElementById('viajes-count').textContent = `${viajes.length} viajes`;
+      document.getElementById('viajes-tbody').innerHTML = viajes.length ? viajes.map(v=>`
+        <tr>
+          <td>${v.ruta_nombre||'–'}</td>
+          <td>${v.camion_placa||'–'}</td>
+          <td style="font-size:.78rem">${v.inicio ? v.inicio.replace('T',' ').slice(0,16) : '–'}</td>
+          <td style="font-size:.78rem">${v.fin   ? v.fin.replace('T',' ').slice(0,16)   : '–'}</td>
+          <td><span class="badge ${v.estado==='En curso'?'badge-green':v.estado==='Finalizado'?'badge-blue':'badge-yellow'}">${v.estado}</span></td>
+          <td>${v.estado==='En curso'
+            ? `<button class="btn-edit" onclick="finalizarViaje('${v._id}')">🏁 Finalizar</button>`
+            : '–'}</td>
+        </tr>`).join('')
+        : `<tr class="empty-row"><td colspan="6">Sin viajes registrados aún</td></tr>`;
+    } catch(e){
+      document.getElementById('viajes-tbody').innerHTML=`<tr class="empty-row"><td colspan="6">❌ ${e.message}</td></tr>`;
+    }
+  }
+}
+
+async function iniciarViaje(){
+  const ruta_id   = document.getElementById('viaje-ruta').value;
+  const camion_id = document.getElementById('viaje-camion').value;
+  const notas     = document.getElementById('viaje-notas').value;
+  const errEl     = document.getElementById('viaje-err');
+  if(!ruta_id)   { errEl.textContent='⚠ Selecciona una ruta'; return; }
+  if(!camion_id) { errEl.textContent='⚠ Selecciona un camión'; return; }
+  errEl.textContent='';
+  try {
+    await api('POST','/api/conductor/viajes/iniciar',{ruta_id,camion_id,notas});
+    showToast('Viaje iniciado correctamente 🚀','success');
+    openAccion('mis_viajes');
+  } catch(e){ errEl.textContent='✖ '+e.message; }
+}
+
+async function finalizarViaje(viaje_id){
+  try {
+    await api('POST',`/api/conductor/viajes/${viaje_id}/finalizar`,{});
+    showToast('Viaje finalizado 🏁','success');
+    openAccion('mis_viajes');
+  } catch(e){ showToast('Error: '+e.message,'error'); }
+}
+
+async function reportarIncidencia(){
+  const tipo  = document.getElementById('inc-tipo').value;
+  const desc  = document.getElementById('inc-desc').value.trim();
+  const ruta  = document.getElementById('inc-ruta').value;
+  const errEl = document.getElementById('inc-err');
+  if(!tipo) { errEl.textContent='⚠ Selecciona un tipo de incidencia'; return; }
+  if(desc.length < 10) { errEl.textContent='⚠ La descripción debe tener al menos 10 caracteres'; return; }
+  errEl.textContent='';
+  try {
+    await api('POST','/api/conductor/incidencias',{tipo,descripcion:desc,ruta_id:ruta});
+    showToast('Incidencia reportada ✓','success');
+    document.getElementById('inc-desc').value='';
+    document.getElementById('inc-tipo').value='';
+    document.getElementById('inc-ruta').value='';
+  } catch(e){ errEl.textContent='✖ '+e.message; }
+}
+
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast-ico').textContent=type==='success'?'✅':'❌';
+  t.className='toast '+type+' show';
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+document.getElementById('crud-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('confirm-modal').addEventListener('click',function(e){if(e.target===this)closeConfirm();});
+
+(async()=>{
+  // Cargar CAPTCHA al mostrar el login
+  loadCaptcha();
+  try{
+    const me = await api('GET','/api/me');
+    currentRole=me.rol; currentUser=me;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    buildSidebar(); showWelcome();
+  }catch(e){/* no hay sesión, mostrar login */}
+})();
+</script>
+</body>
+</html>

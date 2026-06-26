@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mapa de Rutas</title>
+    <!-- Estilos de Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mapa de Rutas</h1>
+    <div id="map"></div>
+
+    <!-- Scripts de Leaflet -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+        // Inicializar mapa centrado en México
+        var map = L.map('map').setView([19.4326, -99.1332], 6);
+
+        // Cargar tiles de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Recibir rutas desde Flask (convertidas a JSON)
+        var rutas = {{ rutas|tojson }};
+
+        // Dibujar cada ruta en el mapa
+        rutas.forEach(ruta => {
+            // Asegúrate de que tus documentos tengan lat/lon para origen y destino
+            var origen = [ruta.origen_lat, ruta.origen_lon];
+            var destino = [ruta.destino_lat, ruta.destino_lon];
+
+            // Dibujar línea entre origen y destino
+            L.polyline([origen, destino], {color: 'blue'}).addTo(map);
+
+            // Marcadores en origen y destino
+            L.marker(origen).addTo(map).bindPopup("Origen: " + ruta.origen);
+            L.marker(destino).addTo(map).bindPopup("Destino: " + ruta.destino);
+        });
+    </script>
+</body>
+</html>
