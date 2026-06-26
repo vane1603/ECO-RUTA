@@ -59,6 +59,10 @@ input,select,textarea,button{font-family:inherit}
   color:var(--cream);border-radius:8px;padding:.55rem .8rem;font-size:.92rem;font-family:'Syne',sans-serif;
   font-weight:700;text-align:center;transition:border-color .2s;min-width:0}
 .captcha-input:focus{outline:none;border-color:var(--g-bright)}
+/* Eliminar spinners en inputs numéricos tipo text */
+.captcha-input::-webkit-outer-spin-button,
+.captcha-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.captcha-input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .captcha-refresh{background:none;border:1px solid rgba(110,255,197,.2);color:rgba(244,240,230,.5);
   border-radius:8px;padding:.45rem .6rem;cursor:pointer;font-size:.85rem;transition:all .2s;flex-shrink:0}
 .captcha-refresh:hover{border-color:var(--g-bright);color:var(--g-neon)}
@@ -290,7 +294,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <span>¿Cuánto es</span>
         <span id="captcha-pregunta">…</span> =
       </div>
-      <input type="number" id="captcha-answer" class="captcha-input" placeholder="?" autocomplete="off"/>
+      <input type="text" inputmode="numeric" pattern="-?\d*" id="captcha-answer"
+             class="captcha-input" placeholder="?" autocomplete="off" maxlength="5"/>
       <button type="button" class="captcha-refresh" onclick="loadCaptcha()" title="Nueva pregunta">↺</button>
     </div>
   </div>
@@ -451,25 +456,23 @@ async function api(method, path, body=null){
    CAPTCHA
 ══════════════════════════════════════ */
 async function loadCaptcha(){
-  const eq  = document.getElementById('captcha-pregunta');
-  const ans = document.getElementById('captcha-answer');
-  const btn = document.getElementById('btn-login');
+  const eq      = document.getElementById('captcha-pregunta');
+  const ans     = document.getElementById('captcha-answer');
+  const btn     = document.getElementById('btn-login');
   const blocked = document.getElementById('captcha-blocked');
 
   if(eq) eq.textContent = '…';
-  if(ans){ ans.value=''; ans.disabled=true; }
 
   try {
-    const res = await fetch('/api/captcha', {credentials:'same-origin'});
+    const res  = await fetch('/api/captcha', {credentials:'same-origin'});
     const data = await res.json();
 
     if(res.status === 429){
-      // IP bloqueada por demasiados intentos
       if(btn) btn.disabled = true;
+      if(ans) ans.disabled = true;
       if(blocked){
-        blocked.style.display='block';
-        blocked.textContent = `🔒 ${data.error}`;
-        // Cuenta regresiva visual
+        blocked.style.display = 'block';
+        blocked.textContent   = `🔒 ${data.error}`;
         if(data.restante){
           let seg = data.restante;
           const iv = setInterval(()=>{
@@ -483,13 +486,14 @@ async function loadCaptcha(){
       return;
     }
 
-    // Ocultar banner de bloqueo si ya pasó
+    // Disponible — asegurar que el campo esté activo
     if(blocked) blocked.style.display = 'none';
-    if(btn) btn.disabled = false;
-    if(ans) ans.disabled = false;
-    if(eq) eq.textContent = data.pregunta + ' ';
+    if(btn)     btn.disabled  = false;
+    if(ans){    ans.disabled  = false; ans.value = ''; ans.focus(); }
+    if(eq)      eq.textContent = data.pregunta + ' ';
+
   } catch(e){
-    if(eq) eq.textContent = 'Error';
+    if(eq) eq.textContent = 'Error — recarga';
   }
 }
 
